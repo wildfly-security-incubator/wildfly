@@ -100,7 +100,9 @@ public enum EJB3SubsystemXMLElement {
     DELIVERY_GROUP("delivery-group"),
 
     DISCOVERY("discovery"),
-    STATIC_EJB_DISCOVERY("static-ejb-discovery")
+    STATIC_EJB_DISCOVERY("static-ejb-discovery"),
+    STATIC_CLUSTER_DISCOVERY("static-cluster-discovery"),
+    CONNECT_TO("connect-to"),
     ;
 
     private final String name;
