@@ -25,6 +25,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Collection;
 
+import javax.ejb.EJBHome;
 import javax.ejb.Handle;
 
 import org.jboss.as.ee.component.ComponentConfiguration;
@@ -135,7 +136,7 @@ public class EntityBeanHomeViewConfigurator implements ViewConfigurator {
                 } catch (ClassNotFoundException e) {
                     throw EjbLogger.ROOT_LOGGER.failedToLoadViewClassForComponent(e, componentDescription.getComponentName());
                 }
-                final EjbMetadataInterceptor factory = new EjbMetadataInterceptor(ejbObjectClass, configuration.getViewClass(), pkClass, false, false);
+                final EjbMetadataInterceptor factory = new EjbMetadataInterceptor(ejbObjectClass, configuration.getViewClass().asSubclass(EJBHome.class), pkClass, false, false);
 
                 //add a dependency on the view to create
                 componentConfiguration.getStartDependencies().add(new DependencyConfigurator<ComponentStartService>() {

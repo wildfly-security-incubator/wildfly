@@ -89,12 +89,20 @@ public enum EJB3SubsystemXMLElement {
     STATISTICS("statistics"),
     STRICT_MAX_POOL("strict-max-pool"),
 
+    GLOBAL_INTERCEPTORS("global-interceptors"),
+    CONNECTIONS("connections"),
+
     THREAD_POOL("thread-pool"),
     THREAD_POOLS("thread-pools"),
     TIMER_SERVICE("timer-service"),
     LOG_SYSTEM_EXCEPTIONS(EJB3SubsystemModel.LOG_SYSTEM_EXCEPTIONS),
     DELIVERY_GROUPS("delivery-groups"),
     DELIVERY_GROUP("delivery-group"),
+
+    DISCOVERY("discovery"),
+    STATIC_EJB_DISCOVERY("static-ejb-discovery"),
+    STATIC_CLUSTER_DISCOVERY("static-cluster-discovery"),
+    CONNECT_TO("connect-to"),
     ;
 
     private final String name;
