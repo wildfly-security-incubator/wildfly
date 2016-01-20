@@ -83,7 +83,7 @@ public class DomainContextRealm implements SecurityRealm {
     }
 
     @Override
-    public RealmIdentity getRealmIdentity(String name) throws RealmUnavailableException {
+    public RealmIdentity getRealmIdentity(String name, final Principal principal, final Evidence evidence) throws RealmUnavailableException {
         return new PicketBoxBasedIdentity(name);
     }
 
