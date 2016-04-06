@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004,2014 Red Hat, Inc.,. All rights reserved.
+ * Copyright (c) 2004,2016 Red Hat, Inc.,. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -56,6 +56,7 @@ import com.sun.corba.se.spi.ior.iiop.IIOPProfileTemplate;
 import com.sun.corba.se.spi.orb.ORB;
 import com.sun.corba.se.spi.transport.IORToSocketInfo;
 import com.sun.corba.se.spi.transport.SocketInfo;
+import org.wildfly.iiop.openjdk.logging.IIOPLogger;
 
 import static java.security.AccessController.doPrivileged;
 
@@ -73,7 +74,8 @@ public class CSIV2IORToSocketInfo implements IORToSocketInfo {
 
     private static boolean clientRequiresSsl;
 
-    public static void setClientRequiresSSL(final boolean clientRequiresSSL) {
+
+    public static void setClientTransportConfigMetaData(final boolean clientRequiresSSL) {
         CSIV2IORToSocketInfo.clientRequiresSsl = clientRequiresSSL;
     }
 
@@ -127,10 +129,14 @@ public class CSIV2IORToSocketInfo implements IORToSocketInfo {
             }
         });
         in.consumeEndian();
-        SSL ssl = SSLHelper.read(in);
 
-        // HACK: Previous versions advertise they support SSL when they do not
-        return ssl.target_requires > 0 ? ssl : null;
+        SSL ssl = SSLHelper.read(in);
+        boolean targetRequiresSsl = ssl.target_requires > 0;
+        boolean targetSupportsSsl = ssl.target_supports >0;
+        if(!targetSupportsSsl && clientRequiresSsl){
+            throw IIOPLogger.ROOT_LOGGER.serverDoesNotSupportSsl();
+        }
+        return targetSupportsSsl && (targetRequiresSsl || clientRequiresSsl) ? ssl : null;
     }
 
     private TransportAddress selectSSLTransportAddress(IOR ior) {
@@ -143,6 +149,10 @@ public class CSIV2IORToSocketInfo implements IORToSocketInfo {
                 }
                 boolean targetSupportsSsl = checkSSL(sslMech.target_supports);
                 boolean targetRequiresSsl = checkSSL(sslMech.target_requires);
+
+                if(!targetSupportsSsl && clientRequiresSsl){
+                    throw IIOPLogger.ROOT_LOGGER.serverDoesNotSupportSsl();
+                }
                 if (targetSupportsSsl && (targetRequiresSsl || clientRequiresSsl)) {
                     return extractAddress(sslMech);
                 }
