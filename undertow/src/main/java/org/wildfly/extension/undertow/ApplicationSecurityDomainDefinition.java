@@ -25,6 +25,7 @@ package org.wildfly.extension.undertow;
 import static io.undertow.util.StatusCodes.OK;
 import static org.jboss.as.controller.capability.RuntimeCapability.buildDynamicCapabilityName;
 import static org.wildfly.extension.undertow.logging.UndertowLogger.ROOT_LOGGER;
+import static org.wildfly.security.auth.server.HttpAuthenticationFactory.getHostName;
 import static org.wildfly.security.http.HttpConstants.CONFIG_CONTEXT_PATH;
 import static org.wildfly.security.http.HttpConstants.CONFIG_ERROR_PAGE;
 import static org.wildfly.security.http.HttpConstants.CONFIG_LOGIN_PAGE;
@@ -90,9 +91,11 @@ import org.wildfly.elytron.web.undertow.server.ElytronHttpExchange;
 import org.wildfly.elytron.web.undertow.server.ElytronRunAsHandler;
 import org.wildfly.elytron.web.undertow.server.ScopeSessionListener;
 import org.wildfly.security.auth.server.HttpAuthenticationFactory;
+import org.wildfly.security.auth.server.MechanismInformation;
 import org.wildfly.security.http.HttpAuthenticationException;
 import org.wildfly.security.http.HttpScope;
 import org.wildfly.security.http.HttpServerAuthenticationMechanism;
+import org.wildfly.security.http.HttpServerRequest;
 import org.wildfly.security.http.Scope;
 import org.wildfly.security.http.util.PropertiesServerMechanismFactory;
 
@@ -301,12 +304,39 @@ public class ApplicationSecurityDomainDefinition extends PersistentResourceDefin
             return registration;
         }
 
-        private List<HttpServerAuthenticationMechanism> getAuthenticationMechanisms(Map<String, Map<String, String>> selectedMechanisms) {
+        private List<HttpServerAuthenticationMechanism> getAuthenticationMechanisms(HttpServerRequest httpServerRequest, Map<String, Map<String, String>> selectedMechanisms) {
+            final String hostName = getHostName(httpServerRequest);
+            final String protocol = httpServerRequest.getRequestURI().getScheme();
             List<HttpServerAuthenticationMechanism> mechanisms = new ArrayList<>(selectedMechanisms.size());
             selectedMechanisms.forEach((n, c) -> {
                 try {
-                    HttpServerAuthenticationMechanism mechanism =  httpAuthenticationFactory.createMechanism(n, (f) -> new PropertiesServerMechanismFactory(f, c));
-                    if (mechanism!= null) mechanisms.add(mechanism);
+                    // Now that we have the host name and protocol name, make sure the mechanism is actually available
+                    MechanismInformation mechanismInformation = new MechanismInformation() {
+
+                        @Override
+                        public String getProtocol() {
+                            return protocol;
+                        }
+
+                        @Override
+                        public String getMechanismType() {
+                            return "HTTP";
+                        }
+
+                        @Override
+                        public String getMechanismName() {
+                            return n;
+                        }
+
+                        @Override
+                        public String getHostName() {
+                            return hostName;
+                        }
+                    };
+                    if (httpAuthenticationFactory.isMechAvailable(mechanismInformation)) {
+                        HttpServerAuthenticationMechanism mechanism = httpAuthenticationFactory.createMechanism(n, (f) -> new PropertiesServerMechanismFactory(f, c));
+                        if (mechanism != null) mechanisms.add(mechanism);
+                    }
                 } catch (HttpAuthenticationException e) {
                     throw new IllegalStateException(e);
                 }
@@ -369,7 +399,7 @@ public class ApplicationSecurityDomainDefinition extends PersistentResourceDefin
 
             return ElytronContextAssociationHandler.builder()
                     .setNext(toWrap)
-                    .setMechanismSupplier(() -> getAuthenticationMechanisms(selectedMechanisms))
+                    .setMechanismSupplier(httpServerRequest -> getAuthenticationMechanisms(httpServerRequest, selectedMechanisms))
                     .setHttpExchangeSupplier(httpServerExchange -> new ElytronHttpExchange(httpServerExchange, scopeResolvers, scopeSessionListener) {
                         @Override
                         protected SessionManager getSessionManager() {
