@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2014, Red Hat, Inc., and individual contributors
+ * Copyright 2016, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -90,8 +90,8 @@ public class IIOPExtension implements Extension {
 
     @Override
     public void initializeParsers(ExtensionParsingContext context) {
-        context.setSubsystemXmlMapping(SUBSYSTEM_NAME,Namespace.IIOP_OPENJDK_1_0.getUriString(), IIOPSubsystemParser_1.INSTANCE);
-        context.setSubsystemXmlMapping(SUBSYSTEM_NAME,Namespace.IIOP_OPENJDK_3_0.getUriString(), IIOPSubsystemParser_3.INSTANCE);
+        context.setSubsystemXmlMapping(SUBSYSTEM_NAME, Namespace.IIOP_OPENJDK_1_0.getUriString(), IIOPSubsystemParser_1.INSTANCE);
+        context.setSubsystemXmlMapping(SUBSYSTEM_NAME, Namespace.IIOP_OPENJDK_3_0.getUriString(), IIOPSubsystemParser_3.INSTANCE);
     }
 
     protected static void registerTransformers(final SubsystemRegistration subsystem) {
@@ -99,6 +99,7 @@ public class IIOPExtension implements Extension {
 
         ResourceTransformationDescriptionBuilder builder = chained.createBuilder(CURRENT_MODEL_VERSION, VERSION_1);
         builder.getAttributeBuilder()
+                .addRejectCheck(RejectAttributeChecker.DEFINED, IIOPRootDefinition.SECURITY_ENABLED_PROTOCOLS)
                 .addRejectCheck(new RejectAttributeChecker.DefaultRejectAttributeChecker() {
                     @Override
                     protected boolean rejectAttribute(PathAddress pathAddress, String s, ModelNode attributeValue, TransformationContext transformationContext) {
