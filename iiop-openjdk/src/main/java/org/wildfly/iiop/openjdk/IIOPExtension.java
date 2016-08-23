@@ -90,8 +90,8 @@ public class IIOPExtension implements Extension {
 
     @Override
     public void initializeParsers(ExtensionParsingContext context) {
-        context.setSubsystemXmlMapping(SUBSYSTEM_NAME,Namespace.IIOP_OPENJDK_1_0.getUriString(), IIOPSubsystemParser_1.INSTANCE);
-        context.setSubsystemXmlMapping(SUBSYSTEM_NAME,Namespace.IIOP_OPENJDK_3_0.getUriString(), IIOPSubsystemParser_3.INSTANCE);
+        context.setSubsystemXmlMapping(SUBSYSTEM_NAME, Namespace.IIOP_OPENJDK_1_0.getUriString(), IIOPSubsystemParser_1.INSTANCE);
+        context.setSubsystemXmlMapping(SUBSYSTEM_NAME, Namespace.IIOP_OPENJDK_3_0.getUriString(), IIOPSubsystemParser_3.INSTANCE);
     }
 
     protected static void registerTransformers(final SubsystemRegistration subsystem) {
@@ -131,6 +131,9 @@ public class IIOPExtension implements Extension {
                     }
 
                 } , IIOPRootDefinition.CLIENT_REQUIRES_SSL);
+
+        builder.getAttributeBuilder()
+                .addRejectCheck(RejectAttributeChecker.DEFINED, IIOPRootDefinition.SECURITY_ENABLED_PROTOCOLS);
 
         chained.buildAndRegister(subsystem, new ModelVersion[]{
                 VERSION_1

@@ -399,4 +399,6 @@ public interface IIOPLogger extends BasicLogger {
     @Message(id = 108, value = "SSL has not been configured but ssl-port property has been specified")
     OperationFailedException sslPortWithoutSslConfiguration();
 
+    @Message(id = 109, value = "Security attribute ssl-enabled-protocols is not supported in previous iiop-openjdk versions and can't be converted")
+    String enabledProtocolsNotSupportedInPreviousVersions();
 }
