@@ -37,13 +37,11 @@ import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.login.LoginException;
 
 import org.jboss.as.core.security.RealmUser;
-import org.jboss.as.core.security.SubjectUserInfo;
 import org.jboss.remoting3.Connection;
-import org.jboss.remoting3.security.UserInfo;
-import org.jboss.remoting3.security.UserPrincipal;
 import org.jboss.security.SimpleGroup;
 import org.jboss.security.auth.callback.ObjectCallback;
 import org.jboss.security.auth.spi.AbstractServerLoginModule;
+import org.wildfly.security.auth.server.SecurityIdentity;
 
 /**
  * A simple LoginModule to take the UserPrincipal from the inbound Remoting connection and to use it as an already authenticated
@@ -56,16 +54,25 @@ import org.jboss.security.auth.spi.AbstractServerLoginModule;
 public class RemotingLoginModule extends AbstractServerLoginModule {
 
     /**
-     * If a {@link X509Certificate} is available from the client as a result of a {@link SSLSession} being established should
+     * If a {@link javax.security.cert.X509Certificate} is available from the client as a result of a {@link SSLSession} being established should
      * this be used for the credential.
      *
      * Default = false.
      */
     private static final String USE_CLIENT_CERT_OPTION = "useClientCert";
 
-    private static final String[] ALL_OPTIONS = new String[] { USE_CLIENT_CERT_OPTION };
+    /**
+     * If a {@link java.security.cert.X509Certificate} is available from the client as a result of a {@link SSLSession} being established should
+     * this be used for the credential.
+     *
+     * Default = false.
+     */
+    private static final String USE_NEW_CLIENT_CERT_OPTION = "useNewClientCert";
+
+    private static final String[] ALL_OPTIONS = new String[] { USE_CLIENT_CERT_OPTION, USE_NEW_CLIENT_CERT_OPTION };
 
     private boolean useClientCert = false;
+    private boolean useNewClientCert = false;
     private Principal identity;
 
     @Override
@@ -75,6 +82,9 @@ public class RemotingLoginModule extends AbstractServerLoginModule {
 
         if (options.containsKey(USE_CLIENT_CERT_OPTION)) {
             useClientCert = Boolean.parseBoolean(options.get(USE_CLIENT_CERT_OPTION).toString());
+        }
+        if (options.containsKey(USE_NEW_CLIENT_CERT_OPTION)) {
+            useNewClientCert = Boolean.parseBoolean(options.get(USE_NEW_CLIENT_CERT_OPTION).toString());
         }
     }
 
@@ -91,23 +101,9 @@ public class RemotingLoginModule extends AbstractServerLoginModule {
             Connection con = ((RemotingConnectionCredential) credential).getConnection();
             Principal up = null;
 
-            UserInfo userInfo = con.getUserInfo();
-            if (userInfo instanceof SubjectUserInfo) {
-                for (Principal current : ((SubjectUserInfo) userInfo).getPrincipals()) {
-                    if (current instanceof RealmUser) {
-                        up = current;
-                        break;
-                    }
-                }
-            }
-
-            if (up == null) {
-                for (Principal current : con.getPrincipals()) {
-                    if (current instanceof UserPrincipal) {
-                        up = current;
-                        break;
-                    }
-                }
+            SecurityIdentity localIdentity = con.getLocalIdentity();
+            if (localIdentity != null) {
+                up = new RealmUser(localIdentity.getPrincipal().getName());
             }
 
             // If we found a principal from the connection then authentication succeeded.
@@ -119,7 +115,17 @@ public class RemotingLoginModule extends AbstractServerLoginModule {
                     // Add the username to the shared state map
                     sharedState.put("javax.security.auth.login.name", identity);
 
-                    if (useClientCert) {
+                    if (useNewClientCert) {
+                        SSLSession session = con.getSslSession();
+                        if (session != null) {
+                            try {
+                                credential = session.getPeerCertificates()[0];
+                                log.debug("Using new certificate as credential.");
+                            } catch (SSLPeerUnverifiedException e) {
+                                log.debugf("No peer certificate available for '%s'", userName);
+                            }
+                        }
+                    } else if (useClientCert) {
                         SSLSession session = con.getSslSession();
                         if (session != null) {
                             try {
