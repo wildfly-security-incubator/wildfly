@@ -120,7 +120,7 @@ public class IIOPSubsystemTestCase extends AbstractSubsystemBaseTest {
 
         // now try parsing a valid element in an invalid position.
         subsystemXml =
-                "<subsystem xmlns=\"urn:jboss:domain:iiop-openjdk:1.0\">" +
+                "<subsystem xmlns=\"urn:jboss:domain:iiop-openjdk:1.1\">" +
                 "    <orb>" +
                 "        <poa/>" +
                 "    </orb>" +
@@ -200,5 +200,4 @@ public class IIOPSubsystemTestCase extends AbstractSubsystemBaseTest {
     public void testSubsystem_1_0() throws Exception {
         super.standardSubsystemTest("subsystem-1.0.xml", false);
     }
-
 }

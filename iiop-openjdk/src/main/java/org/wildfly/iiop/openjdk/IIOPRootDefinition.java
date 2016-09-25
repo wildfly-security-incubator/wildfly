@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2013, Red Hat, Inc., and individual contributors
+ * Copyright 2016, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -52,6 +52,7 @@ import org.jboss.dmr.ModelType;
 class IIOPRootDefinition extends PersistentResourceDefinition {
 
     static final ModelNode NONE = new ModelNode("none");
+    static final ModelNode SUPPORTED = new ModelNode("supported");
 
     static final ParameterValidator SSL_CONFIG_VALIDATOR = new EnumValidator<SSLConfigValue>(SSLConfigValue.class, true, false);
 
@@ -82,7 +83,7 @@ class IIOPRootDefinition extends PersistentResourceDefinition {
 
     protected static final AttributeDefinition SSL_SOCKET_BINDING = new SimpleAttributeDefinitionBuilder(
             Constants.ORB_SSL_SOCKET_BINDING, ModelType.STRING, true).setAttributeGroup(Constants.ORB)
-            .setDefaultValue(new ModelNode().set("iiop-ssl")).setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
+            .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
             .addAccessConstraint(SensitiveTargetAccessConstraintDefinition.SOCKET_BINDING_REF).build();
 
     //TCP attributes
@@ -149,9 +150,19 @@ class IIOPRootDefinition extends PersistentResourceDefinition {
             .addAccessConstraint(IIOP_SECURITY_DEF)
             .build();
 
+    public static final AttributeDefinition SECURITY_ENABLED_PROTOCOLS = new SimpleAttributeDefinitionBuilder(
+            Constants.SECURITY_SSL_ENABLED_PROTOCOLS, ModelType.STRING, true)
+            .setAttributeGroup(Constants.SECURITY)
+            .setDefaultValue(new ModelNode("TLSv1,TLSv1.1,TLSv1.2"))
+            .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
+            .addAccessConstraint(SensitiveTargetAccessConstraintDefinition.SOCKET_BINDING_REF)
+            .addAccessConstraint(IIOP_SECURITY_DEF)
+            .build();
+
     @Deprecated
     public static final AttributeDefinition ADD_COMPONENT_INTERCEPTOR = new SimpleAttributeDefinitionBuilder(
             Constants.SECURITY_ADD_COMP_VIA_INTERCEPTOR, ModelType.BOOLEAN, true)
+            .setDeprecated(IIOPExtension.VERSION_1)
             .setAttributeGroup(Constants.SECURITY)
             .setDefaultValue(new ModelNode(true))
             .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
@@ -162,6 +173,7 @@ class IIOPRootDefinition extends PersistentResourceDefinition {
     @Deprecated
     public static final AttributeDefinition CLIENT_SUPPORTS = new SimpleAttributeDefinitionBuilder(
             Constants.SECURITY_CLIENT_SUPPORTS, ModelType.STRING, true)
+            .setDeprecated(IIOPExtension.VERSION_1)
             .setAttributeGroup(Constants.SECURITY)
             .setDefaultValue(new ModelNode().set(SSLConfigValue.MUTUALAUTH.toString()))
             .setValidator(SSL_CONFIG_VALIDATOR)
@@ -170,8 +182,10 @@ class IIOPRootDefinition extends PersistentResourceDefinition {
             .addAccessConstraint(IIOP_SECURITY_DEF)
             .build();
 
+    @Deprecated
     public static final AttributeDefinition CLIENT_REQUIRES = new SimpleAttributeDefinitionBuilder(
             Constants.SECURITY_CLIENT_REQUIRES, ModelType.STRING, true)
+            .setDeprecated(IIOPExtension.VERSION_1)
             .setAttributeGroup(Constants.SECURITY)
             .setDefaultValue(new ModelNode().set(SSLConfigValue.NONE.toString()))
             .setValidator(SSL_CONFIG_VALIDATOR)
@@ -183,6 +197,7 @@ class IIOPRootDefinition extends PersistentResourceDefinition {
     @Deprecated
     public static final AttributeDefinition SERVER_SUPPORTS = new SimpleAttributeDefinitionBuilder(
             Constants.SECURITY_SERVER_SUPPORTS, ModelType.STRING, true)
+            .setDeprecated(IIOPExtension.VERSION_1)
             .setAttributeGroup(Constants.SECURITY)
             .setDefaultValue(new ModelNode().set(SSLConfigValue.MUTUALAUTH.toString()))
             .setValidator(SSL_CONFIG_VALIDATOR)
@@ -194,9 +209,28 @@ class IIOPRootDefinition extends PersistentResourceDefinition {
     @Deprecated
     public static final AttributeDefinition SERVER_REQUIRES = new SimpleAttributeDefinitionBuilder(
             Constants.SECURITY_SERVER_REQUIRES, ModelType.STRING, true)
+            .setDeprecated(IIOPExtension.VERSION_1)
             .setAttributeGroup(Constants.SECURITY)
             .setDefaultValue(new ModelNode().set(SSLConfigValue.NONE.toString()))
             .setValidator(SSL_CONFIG_VALIDATOR)
+            .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
+            .setAllowExpression(true)
+            .addAccessConstraint(IIOP_SECURITY_DEF)
+            .build();
+
+    public static final AttributeDefinition CLIENT_REQUIRES_SSL = new SimpleAttributeDefinitionBuilder(
+            Constants.SECURITY_CLIENT_REQUIRES_SSL, ModelType.BOOLEAN, true)
+            .setAttributeGroup(Constants.SECURITY)
+            .setDefaultValue(new ModelNode().set(Boolean.FALSE))
+            .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
+            .setAllowExpression(true)
+            .addAccessConstraint(IIOP_SECURITY_DEF)
+            .build();
+
+    public static final AttributeDefinition SERVER_REQUIRES_SSL = new SimpleAttributeDefinitionBuilder(
+            Constants.SECURITY_SERVER_REQUIRES_SSL, ModelType.BOOLEAN, true)
+            .setAttributeGroup(Constants.SECURITY)
+            .setDefaultValue(new ModelNode().set(Boolean.FALSE))
             .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
             .setAllowExpression(true)
             .addAccessConstraint(IIOP_SECURITY_DEF)
@@ -211,6 +245,7 @@ class IIOPRootDefinition extends PersistentResourceDefinition {
             .build();
 
     //ior transport config attributes
+    @Deprecated
     protected static final AttributeDefinition REALM = new SimpleAttributeDefinitionBuilder(
             Constants.IOR_AS_CONTEXT_REALM, ModelType.STRING, true)
             .setAttributeGroup(Constants.IOR_AS_CONTEXT)
@@ -219,6 +254,7 @@ class IIOPRootDefinition extends PersistentResourceDefinition {
             .setAllowExpression(true)
             .build();
 
+    @Deprecated
     protected static final AttributeDefinition REQUIRED = new SimpleAttributeDefinitionBuilder(
             Constants.IOR_AS_CONTEXT_REQUIRED, ModelType.BOOLEAN, true)
             .setAttributeGroup(Constants.IOR_AS_CONTEXT)
@@ -227,57 +263,57 @@ class IIOPRootDefinition extends PersistentResourceDefinition {
             .setAllowExpression(true)
             .build();
 
+    @Deprecated
     protected static final AttributeDefinition INTEGRITY = new SimpleAttributeDefinitionBuilder(
             Constants.IOR_TRANSPORT_INTEGRITY, ModelType.STRING, true)
             .setAttributeGroup(Constants.IOR_TRANSPORT_CONFIG)
             .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
-            .setDefaultValue(NONE)
             .setValidator(VALIDATOR)
             .setAllowExpression(true)
             .build();
 
+    @Deprecated
     protected static final AttributeDefinition CONFIDENTIALITY = new SimpleAttributeDefinitionBuilder(
             Constants.IOR_TRANSPORT_CONFIDENTIALITY, ModelType.STRING, true)
             .setAttributeGroup(Constants.IOR_TRANSPORT_CONFIG)
             .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
-            .setDefaultValue(NONE)
             .setValidator(VALIDATOR)
             .setAllowExpression(true)
             .build();
 
+    @Deprecated
     protected static final AttributeDefinition TRUST_IN_TARGET = new SimpleAttributeDefinitionBuilder(
             Constants.IOR_TRANSPORT_TRUST_IN_TARGET, ModelType.STRING, true)
             .setAttributeGroup(Constants.IOR_TRANSPORT_CONFIG)
             .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
-            .setDefaultValue(NONE)
             .setValidator(new EnumValidator<IORTransportConfigValues>(IORTransportConfigValues.class, true, true,
                     IORTransportConfigValues.NONE, IORTransportConfigValues.SUPPORTED))
             .setAllowExpression(true)
             .build();
 
+    @Deprecated
     protected static final AttributeDefinition TRUST_IN_CLIENT = new SimpleAttributeDefinitionBuilder(
             Constants.IOR_TRANSPORT_TRUST_IN_CLIENT, ModelType.STRING, true)
             .setAttributeGroup(Constants.IOR_TRANSPORT_CONFIG)
             .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
-            .setDefaultValue(NONE)
             .setValidator(VALIDATOR)
             .setAllowExpression(true)
             .build();
 
+    @Deprecated
     protected static final AttributeDefinition DETECT_REPLAY = new SimpleAttributeDefinitionBuilder(
             Constants.IOR_TRANSPORT_DETECT_REPLAY, ModelType.STRING, true)
             .setAttributeGroup(Constants.IOR_TRANSPORT_CONFIG)
             .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
-            .setDefaultValue(NONE)
             .setValidator(VALIDATOR)
             .setAllowExpression(true)
             .build();
 
+    @Deprecated
     protected static final AttributeDefinition DETECT_MISORDERING = new SimpleAttributeDefinitionBuilder(
             Constants.IOR_TRANSPORT_DETECT_MISORDERING, ModelType.STRING, true)
             .setAttributeGroup(Constants.IOR_TRANSPORT_CONFIG)
             .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
-            .setDefaultValue(NONE)
             .setValidator(VALIDATOR)
             .setAllowExpression(true)
             .build();
@@ -313,8 +349,9 @@ class IIOPRootDefinition extends PersistentResourceDefinition {
     static final List<AttributeDefinition> NAMING_ATTRIBUTES = Arrays.asList(ROOT_CONTEXT, EXPORT_CORBALOC);
 
     // list that contains security attributes definitions
-    static final List<AttributeDefinition> SECURITY_ATTRIBUTES = Arrays.asList(SUPPORT_SSL, SECURITY_DOMAIN,
-            ADD_COMPONENT_INTERCEPTOR, CLIENT_SUPPORTS, CLIENT_REQUIRES, SERVER_SUPPORTS, SERVER_REQUIRES);
+    static final List<AttributeDefinition> SECURITY_ATTRIBUTES = Arrays.asList(SUPPORT_SSL, SECURITY_DOMAIN, SECURITY_ENABLED_PROTOCOLS,
+            SERVER_REQUIRES_SSL, CLIENT_REQUIRES_SSL, ADD_COMPONENT_INTERCEPTOR, CLIENT_SUPPORTS, CLIENT_REQUIRES, SERVER_SUPPORTS, SERVER_REQUIRES);
+
 
     //list that contains tcp attributes definitions
     protected static final List<AttributeDefinition> TCP_ATTRIBUTES = Arrays.asList(HIGH_WATER_MARK,
