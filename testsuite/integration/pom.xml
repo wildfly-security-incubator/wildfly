@@ -308,7 +308,7 @@
         <dependency>
             <groupId>org.wildfly</groupId>
             <artifactId>wildfly-naming-client</artifactId>
-            <version>1.0.0.Beta1-SNAPSHOT</version>
+            <version>1.0.0.Beta2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
