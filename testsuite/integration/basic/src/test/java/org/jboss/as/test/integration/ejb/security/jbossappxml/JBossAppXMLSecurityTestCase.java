@@ -63,11 +63,6 @@ public class JBossAppXMLSecurityTestCase {
 
     static class JBossAppXMLSecurityTestCaseSetup extends EjbSecurityDomainSetup {
         @Override
-        public boolean isUsersRolesRequired() {
-            return false;
-        }
-
-        @Override
         protected String getSecurityDomainName() {
             return "mydomain";
         }

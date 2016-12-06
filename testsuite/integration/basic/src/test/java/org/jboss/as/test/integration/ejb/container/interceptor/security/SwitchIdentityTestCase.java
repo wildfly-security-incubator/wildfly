@@ -62,13 +62,8 @@ import org.jboss.as.arquillian.api.ServerSetupTask;
 import org.jboss.as.arquillian.container.ManagementClient;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.operations.common.Util;
-import org.jboss.as.test.integration.security.common.AbstractSecurityDomainsServerSetupTask;
-import org.jboss.as.test.integration.security.common.AbstractSecurityRealmsServerSetupTask;
+import org.jboss.as.test.integration.ejb.security.EjbSecurityDomainSetup;
 import org.jboss.as.test.integration.security.common.Utils;
-import org.jboss.as.test.integration.security.common.config.SecurityDomain;
-import org.jboss.as.test.integration.security.common.config.SecurityModule;
-import org.jboss.as.test.integration.security.common.config.realm.SecurityRealm;
-import org.jboss.as.test.integration.security.common.config.realm.ServerIdentity;
 import org.jboss.as.test.shared.TestSuiteEnvironment;
 import org.jboss.dmr.ModelNode;
 import org.jboss.ejb.client.ContextSelector;
@@ -95,8 +90,7 @@ import org.junit.runner.RunWith;
  * @author Josef Cacek
  */
 @RunWith(Arquillian.class)
-@ServerSetup({ SwitchIdentityTestCase.SecurityDomainsSetup.class, //
-        SwitchIdentityTestCase.SecurityRealmsSetup.class, //
+@ServerSetup({ SwitchIdentityTestCase.ElytronSetup.class, //
         SwitchIdentityTestCase.RemotingSetup.class })
 @RunAsClient
 public class SwitchIdentityTestCase {
@@ -295,74 +289,24 @@ public class SwitchIdentityTestCase {
 
     // Embedded classes ------------------------------------------------------
 
-    /**
-     * A {@link ServerSetupTask} instance which creates security domains for this test case.
-     *
-     * @author Josef Cacek
-     */
-    static class SecurityDomainsSetup extends AbstractSecurityDomainsServerSetupTask {
+    static class ElytronSetup extends EjbSecurityDomainSetup {
 
-        /**
-         * Returns SecurityDomains configuration for this testcase.
-         *
-         * <pre>
-         * &lt;security-domain name=&quot;switch-identity-test&quot; cache-type=&quot;default&quot;&gt;
-         *     &lt;authentication&gt;
-         *         &lt;login-module code=&quot;{@link GuestDelegationLoginModule}&quot; flag=&quot;optional&quot;&gt;
-         *             &lt;module-option name=&quot;password-stacking&quot; value=&quot;useFirstPass&quot;/&gt;
-         *         &lt;/login-module&gt;
-         *         &lt;login-module code=&quot;Remoting&quot; flag=&quot;optional&quot;&gt;
-         *             &lt;module-option name=&quot;password-stacking&quot; value=&quot;useFirstPass&quot;/&gt;
-         *         &lt;/login-module&gt;
-         *         &lt;login-module code=&quot;RealmDirect&quot; flag=&quot;required&quot;&gt;
-         *             &lt;module-option name=&quot;password-stacking&quot; value=&quot;useFirstPass&quot;/&gt;
-         *         &lt;/login-module&gt;
-         *     &lt;/authentication&gt;
-         * &lt;/security-domain&gt;
-         * </pre>
-         *
-         * @see org.jboss.as.test.integration.security.common.AbstractSecurityDomainsServerSetupTask#getSecurityDomains()
-         */
-        @Override
-        protected SecurityDomain[] getSecurityDomains() {
-            final SecurityModule.Builder loginModuleBuilder = new SecurityModule.Builder().flag("optional").putOption(
-                    "password-stacking", "useFirstPass");
-            final SecurityDomain sd = new SecurityDomain.Builder()
-                    .name(SECURITY_DOMAIN_NAME)
-                    .loginModules(loginModuleBuilder.name(GuestDelegationLoginModule.class.getName()).build(),
-                            loginModuleBuilder.name("Remoting").build(), //
-                            loginModuleBuilder.name("RealmDirect").build()) //
-                    .build();
-            return new SecurityDomain[] { sd };
+        protected String getSecurityDomainName() {
+            return SECURITY_DOMAIN_NAME;
         }
-    }
 
-    /**
-     * A {@link ServerSetupTask} instance which creates security realms for this test case.
-     *
-     * @author Josef Cacek
-     */
-    static class SecurityRealmsSetup extends AbstractSecurityRealmsServerSetupTask {
-
-        /**
-         * Returns SecurityRealms configuration for this testcase.
-         *
-         * <pre>
-         * &lt;security-realm name=&quot;ejb-outbound-realm&quot;&gt;
-         *   &lt;server-identities&gt;
-         *      &lt;secret value=&quot;xxx&quot;/&gt;
-         *   &lt;/server-identities&gt;
-         * &lt;/security-realm&gt;
-         * </pre>
-         *
-         */
-        @Override
-        protected SecurityRealm[] getSecurityRealms() {
-            final ServerIdentity serverIdentity = new ServerIdentity.Builder().secretPlain(EJBUtil.CONNECTION_PASSWORD).build();
-            final SecurityRealm realm = new SecurityRealm.Builder().name(EJB_OUTBOUND_REALM).serverIdentity(serverIdentity)
-                    .build();
-            return new SecurityRealm[] { realm };
+        protected String getSecurityRealmName() {
+            return EJB_OUTBOUND_REALM;
         }
+
+        protected String getUndertowDomainName() {
+            return SECURITY_DOMAIN_NAME;
+        }
+
+        protected String getEjbDomainName() {
+            return SECURITY_DOMAIN_NAME;
+        }
+
     }
 
     /**

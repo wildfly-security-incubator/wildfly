@@ -21,9 +21,9 @@
     <!-- ********************************************************************************** -->
     <!-- ******************************** Basic Integration ******************************* -->
     <!-- ********************************************************************************** -->
-    <artifactId>wildfly-ts-integ-basic</artifactId>
+    <artifactId>wildfly-ts-integ-legacy-security</artifactId>
 
-    <name>WildFly Test Suite: Integration - Basic</name>
+    <name>WildFly Test Suite: Integration - Legacy security (non-Elytron)</name>
 
     <properties>
         <jbossas.ts.integ.dir>${basedir}/..</jbossas.ts.integ.dir>
@@ -153,12 +153,7 @@
                                 </goals>
                                 <configuration>
                                     <!-- Tests to execute. Overriden in webProfileExclusion.profile . -->
-                                    <!-- disable tests requiring standalone-full.xml for now -->
-                                    <excludes>
-                                        <exclude>org/jboss/as/test/integration/**/*TestCase*.java</exclude>
-                                    </excludes>
                                     <includes>
-                                    <!--
                                         <include>org/jboss/as/test/integration/ee/remotelookup/*TestCase*.java</include>
                                         <include>org/jboss/as/test/integration/ee/injection/support/jpa/*TestCase*.java</include>
                                         <include>org/jboss/as/test/integration/ee/injection/resource/substitution/*TestCase*.java</include>
@@ -181,7 +176,6 @@
                                         <include>org/jboss/as/test/integration/ee/injection/resource/enventry/EnvEntryTestCase.java</include>
                                         <include>org/jboss/as/test/integration/ee/injection/resource/basic/*TestCase.java</include>
                                         <include>org/jboss/as/test/integration/ee/naming/defaultbindings/**/*TestCase.java</include>
-                                    -->
                                     </includes>
 
                                     <environmentVariables>
@@ -190,7 +184,7 @@
 
                                     <!-- Parameters to test cases. -->
                                     <systemPropertyVariables combine.children="append">
-                                        <jboss.server.config.file.name>standalone-elytron.xml</jboss.server.config.file.name><!-- standalone-full.xml -->
+                                        <jboss.server.config.file.name>standalone-full.xml</jboss.server.config.file.name>
                                         <jboss.inst>${basedir}/target/jbossas</jboss.inst>
                                         <!-- Needed for the IIOP tests-->
                                         <com.sun.CORBA.ORBUseDynamicStub>true</com.sun.CORBA.ORBUseDynamicStub>
@@ -241,70 +235,6 @@
                                         <exclude>org/jboss/as/test/integration/ee/injection/resource/basic/*TestCase.java</exclude>
                                         <exclude>org/jboss/as/test/integration/ee/naming/defaultbindings/**/*TestCase.java</exclude>
                                         <exclude>org/jboss/as/test/integration/jca/moduledeployment/**/*TestCase*.java</exclude>
-
-                                        <!-- @Ignore("[WFLY-7778] Waiting for remoting") -->
-                                        <exclude>org/jboss/as/test/integration/deployment/dependencies/ear/InterDeploymentDependenciesEarTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/deployment/deploymentoverlay/ear/OverlayExistingResourceTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/deployment/deploymentoverlay/ear/OverlayNonExistingResourceTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/deployment/deploymentoverlay/jar/OverlayExistingResourceTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/deployment/deploymentoverlay/jar/OverlayNonExistingResourceTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/deployment/deploymentoverlay/war/OverlayExistingResourceTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/deployment/deploymentoverlay/war/OverlayNonExistingResourceTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ee/appclient/basic/SimpleApplicationClientTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ee/concurrent/DefaultContextServiceTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ee/concurrent/DefaultManagedExecutorServiceTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ee/concurrent/DefaultManagedScheduledExecutorServiceTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ee/concurrent/DefaultManagedThreadFactoryTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ee/injection/resource/enventry/shared/SharedBeanInEarsUnitTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ejb/async/AsyncMethodTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ejb/client/descriptor/EJBClientDescriptorTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ejb/compression/CompressionTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ejb/container/interceptor/ContainerInterceptorsTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ejb/container/interceptor/security/api/SwitchIdentityTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ejb/container/interceptor/security/SwitchIdentityTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ejb/ejb2/reference/global/GlobalReferenceTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ejb/management/deployments/EjbInvocationStatisticsTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ejb/management/deployments/EjbJarInEarRuntimeResourcesTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ejb/management/deployments/EjbJarRuntimeResourcesTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ejb/mapbased/MapBasedInitialContextEjbClientTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ejb/remote/async/RemoteAsyncInvocationTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ejb/remote/client/api/EJBClientAPIUsageTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ejb/remote/client/api/interceptor/EJBClientInterceptorTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ejb/remote/client/api/tx/EJBClientUserTransactionTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ejb/remote/client/api/tx/EJBClientXidTransactionTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ejb/remote/client/selector/EJBClientContextLockedSelectorTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ejb/remote/distinctname/defaultname/DefaultDistinctNameTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ejb/remote/distinctname/EarDeploymentDistinctNameTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ejb/remote/distinctname/JarDeploymentDistinctNameTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ejb/remote/jndi/RemoteEJBJndiBasedInvocationTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ejb/remote/security/RemoteIdentityTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ejb/security/EJBInWarDefaultSecurityDomainTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ejb/servlet/ServletUnitTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ejb/stateful/exception/ExceptionEjbClientTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ejb/stateful/undeploy/RemoveSFSBOnUndeployTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ejb/timerservice/database/DatabasePersistentCalendarTimerManagementTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ejb/timerservice/database/DatabasePersistentIntervalTimerManagementTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ejb/timerservice/mgmt/NonPersistentCalendarTimerManagementTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ejb/timerservice/mgmt/NonPersistentIntervalTimerManagementTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ejb/timerservice/mgmt/PersistentIntervalTimerManagementTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ejb/timerservice/mgmt/TimerManagementTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ejb/transaction/bmt/lazyenlist/LazyTransactionEnlistmentUnitTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/jca/ear/RarInsideEarReDeploymentTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/jca/statistics/xa/XaDataSourcePoolStatisticsTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/jca/tracer/TracerEnableTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/management/api/ClientCompatibilityUnitTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/management/deploy/runtime/StatefulEJBRemoteHomeRuntimeNameTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/management/deploy/runtime/StatelessEJBRemoteHomeRuntimeNameTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/management/deploy/runtime/TimerEJBRuntimeNameTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/naming/connector/JMXConnectorTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/naming/remote/multiple/MultipleClientRemoteJndiTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/naming/remote/multiple/NestedRemoteContextTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/naming/remote/simple/RemoteNamingTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/security/auditing/SecurityAuditingTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/security/perimeter/CLISecurityTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/security/perimeter/DMRSecurityTestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/web/security/runas/ServletRunAsTestCase.java</exclude>
-
                                     </excludes>
 
                                     <environmentVariables>
@@ -313,7 +243,7 @@
 
                                     <!-- Parameters to test cases. -->
                                     <systemPropertyVariables combine.children="append">
-                                        <jboss.server.config.file.name>standalone-elytron.xml</jboss.server.config.file.name><!-- standalone.xml -->
+                                        <jboss.server.config.file.name>standalone.xml</jboss.server.config.file.name>
                                         <jboss.inst>${basedir}/target/jbossas</jboss.inst>
                                         <!-- EJB client library hack, see WFLY-4973-->
                                         <org.jboss.ejb.client.wildfly-testsuite-hack>true</org.jboss.ejb.client.wildfly-testsuite-hack>
@@ -362,7 +292,7 @@
                                     </includes>
 
                                     <systemPropertyVariables combine.children="append">
-                                        <jboss.server.config.file.name>standalone-elytron.xml</jboss.server.config.file.name><!-- standalone.xml -->
+                                        <jboss.server.config.file.name>standalone.xml</jboss.server.config.file.name>
                                         <jboss.inst>${basedir}/target/jbossas</jboss.inst>
                                         <!-- EJB client library hack, see WFLY-4973-->
                                         <org.jboss.ejb.client.wildfly-testsuite-hack>true</org.jboss.ejb.client.wildfly-testsuite-hack>
@@ -416,7 +346,7 @@
                                 <configuration>
                                     <redirectTestOutputToFile>false</redirectTestOutputToFile>
                                     <systemPropertyVariables combine.children="append">
-                                        <jboss.server.config.file.name>standalone-elytron.xml</jboss.server.config.file.name><!-- standalone-full.xml -->
+                                        <jboss.server.config.file.name>standalone-full.xml</jboss.server.config.file.name>
                                         <!-- EJB client library hack, see WFLY-4973-->
                                         <org.jboss.ejb.client.wildfly-testsuite-hack>true</org.jboss.ejb.client.wildfly-testsuite-hack>
                                     </systemPropertyVariables>

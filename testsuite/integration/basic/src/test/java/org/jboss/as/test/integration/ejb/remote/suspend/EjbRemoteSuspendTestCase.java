@@ -40,6 +40,7 @@ import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -76,6 +77,7 @@ public class EjbRemoteSuspendTestCase {
 
     @Test
     @InSequence(1)
+    @Ignore("[WFLY-7778] Waiting for remoting")
     public void testSuspendedCallRejected() throws Exception {
         final Echo localEcho = (Echo) context.lookup("ejb:" + APP_NAME + "/" + MODULE_NAME + "/" + DISTINCT_NAME + "/" + EchoBean.class.getSimpleName() + "!" + Echo.class.getName() + "?stateful");
         final String message = "Silence!";
