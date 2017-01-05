@@ -406,15 +406,10 @@ public class IIOPSubsystemAdd extends AbstractBoottimeAddStepHandler {
         asContextMetaData.setRequired(IIOPRootDefinition.REQUIRED.resolveModelAttribute(context, resourceModel).asBoolean());
         securityConfigMetaData.setAsContext(asContextMetaData);
 
-        final ModelNode serverRequiresSslNode = IIOPRootDefinition.SERVER_REQUIRES_SSL.resolveModelAttribute(context, resourceModel);
-        final boolean serverRequiresSsl = serverRequiresSslNode.isDefined() ? serverRequiresSslNode.asBoolean() : false;
-
-        if (serverRequiresSsl && !sslConfigured) {
-            throw IIOPLogger.ROOT_LOGGER.sslNotConfigured();
-        }
+        final boolean serverRequiresSsl = IIOPRootDefinition.SERVER_REQUIRES_SSL.resolveModelAttribute(context, resourceModel).asBoolean();
+        final boolean clientRequiresSsl = IIOPRootDefinition.CLIENT_REQUIRES_SSL.resolveModelAttribute(context, resourceModel).asBoolean();
 
         final IORTransportConfigMetaData transportConfigMetaData = new IORTransportConfigMetaData();
-
         final ModelNode integrityNode = IIOPRootDefinition.INTEGRITY.resolveModelAttribute(context, resourceModel);
         if(integrityNode.isDefined()){
             transportConfigMetaData.setIntegrity(integrityNode.asString());
@@ -431,19 +426,16 @@ public class IIOPSubsystemAdd extends AbstractBoottimeAddStepHandler {
 
         final ModelNode establishTrustInTargetNode = IIOPRootDefinition.TRUST_IN_TARGET.resolveModelAttribute(context, resourceModel);
         if (establishTrustInTargetNode.isDefined()) {
-            transportConfigMetaData.setConfidentiality(confidentialityNode.asString());
+            transportConfigMetaData.setEstablishTrustInTarget(confidentialityNode.asString());
         } else {
             transportConfigMetaData.setEstablishTrustInTarget(sslConfigured ? Constants.IOR_SUPPORTED : Constants.NONE);
         }
 
         final ModelNode establishTrustInClientNode = IIOPRootDefinition.TRUST_IN_CLIENT.resolveModelAttribute(context, resourceModel);
         if(establishTrustInClientNode.isDefined()){
-            final String establishTrustInClient = establishTrustInClientNode.asString();
-            if(sslConfigured && establishTrustInClient.equals(Constants.IOR_NONE)){
-                throw IIOPLogger.ROOT_LOGGER.inconsistentTransportConfig(Constants.IOR_TRANSPORT_TRUST_IN_TARGET+" is supported but it is configured with NONE value");
-            }
+            transportConfigMetaData.setEstablishTrustInClient(establishTrustInClientNode.asString());
         } else {
-            transportConfigMetaData.setEstablishTrustInClient(sslConfigured ? (serverRequiresSsl ? Constants.IOR_REQUIRED : Constants.IOR_SUPPORTED) : Constants.NONE);
+            transportConfigMetaData.setEstablishTrustInClient(sslConfigured ? (clientRequiresSsl ? Constants.IOR_REQUIRED : Constants.IOR_SUPPORTED) : Constants.NONE);
         }
 
         transportConfigMetaData.setDetectMisordering(Constants.IOR_SUPPORTED);
