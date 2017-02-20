@@ -47,6 +47,7 @@ import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.as.arquillian.container.ManagementClient;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.test.integration.common.DefaultConfiguration;
+import org.junit.Ignore;
 import org.wildfly.naming.java.permission.JndiPermission;
 import org.jboss.dmr.ModelNode;
 import org.jboss.shrinkwrap.api.Archive;
@@ -89,6 +90,7 @@ public class RemoteNamingEjbTestCase {
     }
 
     @Test
+    @Ignore("[WFLY-7778] Waiting for remoting")
     public void testIt() throws Exception {
         final InitialContext ctx = getRemoteContext();
         final ClassLoader current = Thread.currentThread().getContextClassLoader();
@@ -131,6 +133,7 @@ public class RemoteNamingEjbTestCase {
     }
 
     @Test
+    @Ignore("[WFLY-7778] Waiting for remoting")
     public void testDeploymentBinding() throws Exception {
         final InitialContext ctx = getRemoteContext();
         BinderRemote binder = null;

@@ -29,9 +29,7 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.http.client.ClientProtocolException;
@@ -44,12 +42,9 @@ import org.jboss.as.arquillian.api.ServerSetup;
 import org.jboss.as.arquillian.api.ServerSetupTask;
 import org.jboss.as.arquillian.container.ManagementClient;
 import org.jboss.as.test.categories.CommonCriteria;
-import org.jboss.as.test.integration.security.common.AbstractSecurityDomainsServerSetupTask;
+import org.jboss.as.test.integration.ejb.security.EjbSecurityDomainSetup;
 import org.jboss.as.test.integration.security.common.Coding;
 import org.jboss.as.test.integration.security.common.Utils;
-import org.jboss.as.test.integration.security.common.config.SecurityDomain;
-import org.jboss.as.test.integration.security.common.config.SecurityModule;
-import org.jboss.as.test.integration.security.common.config.SecurityModule.Builder;
 import org.jboss.as.test.integration.security.common.servlets.SimpleSecuredServlet;
 import org.jboss.as.test.integration.security.common.servlets.SimpleServlet;
 import org.jboss.logging.Logger;
@@ -65,9 +60,14 @@ import org.junit.runner.RunWith;
  *
  * @author Jan Lanik
  * @author Josef Cacek
+ * @author Jan Kalina
  */
 @RunWith(Arquillian.class)
-@ServerSetup({UsersRolesLoginModuleTestCase.PropertyFilesSetup.class, UsersRolesLoginModuleTestCase.SecurityDomainsSetup.class})
+@ServerSetup({
+        UsersRolesLoginModuleTestCase.PropertyFilesSetup.class,
+        UsersRolesLoginModuleTestCase.ElytronDomain1Setup.class,
+        UsersRolesLoginModuleTestCase.ElytronDomain2Setup.class
+})
 @RunAsClient
 @Category(CommonCriteria.class)
 public class UsersRolesLoginModuleTestCase {
@@ -75,32 +75,26 @@ public class UsersRolesLoginModuleTestCase {
     private static Logger LOGGER = Logger.getLogger(UsersRolesLoginModuleTestCase.class);
 
     private static final String DEP1 = "UsersRoles-externalFiles";
-    private static final String DEP2 = "UsersRoles-MD5";
-    private static final String DEP3 = "UsersRoles-MD5-hex";
-    private static final String DEP4 = "UsersRoles-MD5-base64";
-    private static final String DEP5a = "UsersRoles-hashUserPassword-false";
-    private static final String DEP5b = "UsersRoles-hashUserPassword-true";
-    private static final String DEP6a = "UsersRoles-hashOnlyStorePassword";
-    private static final String DEP6b = "UsersRoles-hashStorePassword";
-    private static final String DEP7a = "UsersRoles-ignorePasswordCase-true";
-    private static final String DEP7b = "UsersRoles-ignorePasswordCase-false";
+    private static final String DEP2 = "UsersRoles-externalFiles-MD5";
 
+    private static final String REALM = "realm";
     private static final String ANIL = "anil";
     private static final String MARCUS = "marcus";
     private static final String ANIL_PWD = "anilPwd";
     private static final String MARCUS_PWD = "marcusPwd";
 
-    private static final String ROLES = ANIL + "=" + SimpleSecuredServlet.ALLOWED_ROLE + "\n" + MARCUS + "=testRole";
+    private static final String USERS_EXT = "#$REALM_NAME=" + REALM + "$\n" + ANIL + "=" + ANIL_PWD + "\n" + MARCUS + "=" + MARCUS_PWD;
+    private static final String ROLES_EXT = ANIL + "=" + SimpleSecuredServlet.ALLOWED_ROLE + "\n" + MARCUS + "=testRole";
 
-    private static final String USERS_EXT = ANIL + "=" + MARCUS_PWD + "\n" + MARCUS + "=" + ANIL_PWD;
-    private static final String ROLES_EXT = MARCUS + "=" + SimpleSecuredServlet.ALLOWED_ROLE + "\n" + ANIL + "=testRole";
+    private static final String USERS_EXT_MD5 = "#$REALM_NAME=" + REALM + "$\n" + ANIL + "=" + Utils.hashMD5(ANIL + ":" + REALM + ":" + ANIL_PWD, Coding.HEX) + "\n" + MARCUS + "=" + Utils.hashMD5(MARCUS + ":" + REALM + ":" + MARCUS_PWD, Coding.HEX);
+    private static final String ROLES_EXT_MD5 = ANIL + "=" + SimpleSecuredServlet.ALLOWED_ROLE + "\n" + MARCUS + "=testRole";
 
     /**
      * plaintext login with no additional options
      */
     @Deployment(name = DEP1)
     public static WebArchive appDeployment1() {
-        return createWar(DEP1, null);
+        return createWar(DEP1);
     }
 
     /**
@@ -108,71 +102,7 @@ public class UsersRolesLoginModuleTestCase {
      */
     @Deployment(name = DEP2)
     public static WebArchive appDeployment2() {
-        return createWar(DEP2, Coding.BASE_64);
-    }
-
-    /**
-     * passwords stored as MD5 in HEX encoding, no additional options
-     */
-    @Deployment(name = DEP3)
-    public static WebArchive appDeployment3() {
-        return createWar(DEP3, Coding.HEX);
-    }
-
-    /**
-     * passwords stored as MD5 in BASE64 encoding, no additional options
-     */
-    @Deployment(name = DEP4)
-    public static WebArchive appDeployment4() {
-        return createWar(DEP4, Coding.BASE_64);
-    }
-
-    /**
-     * tests hashUserPassword=false option
-     */
-    @Deployment(name = DEP5a)
-    public static WebArchive appDeployment5a() {
-        return createWar(DEP5a, null);
-    }
-
-    /**
-     * tests hashUserPassword=true option
-     */
-    @Deployment(name = DEP5b)
-    public static WebArchive appDeployment5b() {
-        return createWar(DEP5b, Coding.BASE_64);
-    }
-
-    /**
-     * tests hashUserPassword option
-     */
-    @Deployment(name = DEP6a)
-    public static WebArchive appDeployment6a() {
-        return createWar(DEP6a, null);
-    }
-
-    /**
-     * tests hashUserPassword option
-     */
-    @Deployment(name = DEP6b)
-    public static WebArchive appDeployment6b() {
-        return createWar(DEP6b, null);
-    }
-
-    /**
-     * tests ignorePasswordCase=true option
-     */
-    @Deployment(name = DEP7a)
-    public static WebArchive appDeployment7a() {
-        return createWar(DEP7a, null);
-    }
-
-    /**
-     * tests ignorePasswordCase=false option
-     */
-    @Deployment(name = DEP7b)
-    public static WebArchive appDeployment7b() {
-        return createWar(DEP7b, null);
+        return createWar(DEP2);
     }
 
     /**
@@ -184,23 +114,8 @@ public class UsersRolesLoginModuleTestCase {
      */
     @OperateOnDeployment(DEP1)
     @Test
-    public void testExternalFiles(@ArquillianResource URL url) throws Exception {
-        final URL servletUrl = new URL(url.toExternalForm() + SimpleSecuredServlet.SERVLET_PATH.substring(1));
-
-        //successful authentication and authorization
-        assertEquals("Response body is not correct.", SimpleSecuredServlet.RESPONSE_BODY,
-                Utils.makeCallWithBasicAuthn(servletUrl, MARCUS, ANIL_PWD, 200));
-        //successful authentication and unsuccessful authorization
-        Utils.makeCallWithBasicAuthn(servletUrl, ANIL, MARCUS_PWD, 403);
-        //tests related to case insensitiveness
-        Utils.makeCallWithBasicAuthn(servletUrl, ANIL, MARCUS_PWD.toUpperCase(Locale.ENGLISH), 401);
-        Utils.makeCallWithBasicAuthn(servletUrl, MARCUS, ANIL_PWD.toLowerCase(Locale.ENGLISH), 401);
-        //unsuccessful authentication
-        Utils.makeCallWithBasicAuthn(servletUrl, MARCUS, MARCUS_PWD, 401);
-        Utils.makeCallWithBasicAuthn(servletUrl, ANIL, MARCUS, 401);
-        Utils.makeCallWithBasicAuthn(servletUrl, ANIL_PWD, MARCUS_PWD, 401);
-        Utils.makeCallWithBasicAuthn(servletUrl, ANIL, Utils.hashMD5(MARCUS_PWD, Coding.BASE_64), 401);
-        Utils.makeCallWithBasicAuthn(servletUrl, ANIL, Utils.hashMD5(MARCUS_PWD, Coding.HEX), 401);
+    public void testExternalPlainFiles(@ArquillianResource URL url) throws Exception {
+        testAccess(url, false);
     }
 
     /**
@@ -210,103 +125,7 @@ public class UsersRolesLoginModuleTestCase {
      */
     @OperateOnDeployment(DEP2)
     @Test
-    public void testMD5Password(@ArquillianResource URL url) throws Exception {
-        testAccess(url, false);
-    }
-
-    /**
-     * testMD5PasswordHex
-     *
-     * @throws Exception
-     */
-    @OperateOnDeployment(DEP3)
-    @Test
-    public void testMD5PasswordHex(@ArquillianResource URL url) throws Exception {
-        testAccess(url, false);
-    }
-
-    /**
-     * testMD5PasswordBase64
-     *
-     * @throws Exception
-     */
-    @OperateOnDeployment(DEP4)
-    @Test
-    public void testMD5PasswordBase64(@ArquillianResource URL url) throws Exception {
-        testAccess(url, false);
-    }
-
-    /**
-     * testHashUserPasswordTrue
-     *
-     * @throws Exception
-     */
-    @OperateOnDeployment(DEP5a)
-    @Test
-    public void testHashUserPasswordTrue(@ArquillianResource URL url) throws Exception {
-        testAccess(url, false);
-    }
-
-    /**
-     * testHashUserPassword
-     *
-     * @throws Exception
-     */
-    @OperateOnDeployment(DEP5b)
-    @Test
-    public void testHashUserPasswordFalse(@ArquillianResource URL url) throws Exception {
-        testAccess(url, false);
-    }
-
-    /**
-     * testHashOnlyStorePassword
-     *
-     * @throws Exception
-     */
-    @OperateOnDeployment(DEP6a)
-    @Test
-    public void testHashOnlyStorePassword(@ArquillianResource URL url) throws Exception {
-        final URL servletUrl = new URL(url.toExternalForm() + SimpleSecuredServlet.SERVLET_PATH.substring(1));
-        //successful authentication and authorization
-        assertEquals("Response body is not correct.", SimpleSecuredServlet.RESPONSE_BODY,
-                Utils.makeCallWithBasicAuthn(servletUrl, ANIL, Utils.hashMD5(ANIL_PWD, Coding.BASE_64), 200));
-        //successful authentication and unsuccessful authorization
-        Utils.makeCallWithBasicAuthn(servletUrl, MARCUS, Utils.hashMD5(MARCUS_PWD, Coding.BASE_64), 403);
-        //unsuccessful authentication
-        Utils.makeCallWithBasicAuthn(servletUrl, ANIL, ANIL_PWD, 401);
-        Utils.makeCallWithBasicAuthn(servletUrl, MARCUS, MARCUS_PWD, 401);
-    }
-
-    /**
-     * testHashStorePassword
-     *
-     * @throws Exception
-     */
-    @OperateOnDeployment(DEP6b)
-    @Test
-    public void testHashStorePassword(@ArquillianResource URL url) throws Exception {
-        testAccess(url, false);
-    }
-
-    /**
-     * testIgnorePasswordCaseTrue
-     *
-     * @throws Exception
-     */
-    @OperateOnDeployment(DEP7a)
-    @Test
-    public void testIgnorePasswordCaseTrue(@ArquillianResource URL url) throws Exception {
-        testAccess(url, true);
-    }
-
-    /**
-     * testIgnorePasswordCaseFalse
-     *
-     * @throws Exception
-     */
-    @OperateOnDeployment(DEP7b)
-    @Test
-    public void testIgnorePasswordCaseFalse(@ArquillianResource URL url) throws Exception {
+    public void testExternalMD5Files(@ArquillianResource URL url) throws Exception {
         testAccess(url, false);
     }
 
@@ -342,7 +161,7 @@ public class UsersRolesLoginModuleTestCase {
         //unsuccessful authentication
         Utils.makeCallWithBasicAuthn(servletUrl, ANIL, MARCUS_PWD, 401);
         Utils.makeCallWithBasicAuthn(servletUrl, ANIL, MARCUS, 401);
-        Utils.makeCallWithBasicAuthn(servletUrl, MARCUS_PWD, MARCUS, 401);
+        Utils.makeCallWithBasicAuthn(servletUrl, ANIL_PWD, ANIL, 401);
         Utils.makeCallWithBasicAuthn(servletUrl, ANIL, Utils.hashMD5(ANIL, Coding.BASE_64), 401);
         Utils.makeCallWithBasicAuthn(servletUrl, ANIL, Utils.hashMD5(ANIL, Coding.HEX), 401);
     }
@@ -353,17 +172,12 @@ public class UsersRolesLoginModuleTestCase {
      * @param deployment
      * @return
      */
-    private static WebArchive createWar(final String deployment, Coding coding) {
+    private static WebArchive createWar(final String deployment) {
         LOGGER.trace("Starting deployment " + deployment);
-
-        final String users = ANIL + "=" + Utils.hashMD5(ANIL_PWD, coding) + "\n" + MARCUS + "="
-                + Utils.hashMD5(MARCUS_PWD, coding);
 
         final WebArchive war = ShrinkWrap.create(WebArchive.class, deployment + ".war");
         war.addClasses(SimpleSecuredServlet.class, SimpleServlet.class);
         war.addAsWebInfResource(UsersRolesLoginModuleTestCase.class.getPackage(), "web-basic-authn.xml", "web.xml");
-        war.addAsResource(new StringAsset(users), "users.properties");
-        war.addAsResource(new StringAsset(ROLES), "roles.properties");
         war.addAsWebInfResource(new StringAsset("<jboss-web>" + //
                 "<security-domain>" + deployment + "</security-domain>" + //
                 "</jboss-web>"), "jboss-web.xml");
@@ -373,68 +187,109 @@ public class UsersRolesLoginModuleTestCase {
 
     // Embedded classes ------------------------------------------------------
 
-    /**
-     * A {@link ServerSetupTask} instance which creates security domains for this test case.
-     *
-     * @author Josef Cacek
-     */
-    static class SecurityDomainsSetup extends AbstractSecurityDomainsServerSetupTask {
+    static class ElytronDomain1Setup extends EjbSecurityDomainSetup {
 
-        /**
-         * Returns SecurityDomains configuration for this testcase.
-         *
-         * @see org.jboss.as.test.integration.security.common.AbstractSecurityDomainsServerSetupTask#getSecurityDomains()
-         */
         @Override
-        protected SecurityDomain[] getSecurityDomains() {
+        protected String getSecurityDomainName() {
+            return DEP1;
+        }
 
-            final Map<String, String> lmOptions = new HashMap<String, String>();
-            final Builder loginModuleBuilder = new SecurityModule.Builder().name("UsersRoles").options(lmOptions);
+        @Override
+        protected String getSecurityRealmName() {
+            return DEP1;
+        }
 
-            lmOptions.put("usersProperties", PropertyFilesSetup.FILE_USERS.getAbsolutePath());
-            lmOptions.put("rolesProperties", PropertyFilesSetup.FILE_ROLES.getAbsolutePath());
-            final SecurityDomain sd1 = new SecurityDomain.Builder().name(DEP1).loginModules(loginModuleBuilder.build()).build();
+        @Override
+        protected String getUndertowDomainName() {
+            return DEP1;
+        }
 
-            lmOptions.remove("usersProperties");
-            lmOptions.remove("rolesProperties");
-            lmOptions.put("hashAlgorithm", "MD5");
-            final SecurityDomain sd2 = new SecurityDomain.Builder().name(DEP2).loginModules(loginModuleBuilder.build()).build();
+        @Override
+        protected String getEjbDomainName() {
+            return DEP1;
+        }
 
-            lmOptions.put("hashEncoding", "hex");
-            final SecurityDomain sd3 = new SecurityDomain.Builder().name(DEP3).loginModules(loginModuleBuilder.build()).build();
+        @Override
+        protected String getSaslAuthenticationName() {
+            return DEP1;
+        }
 
-            lmOptions.put("hashEncoding", "base64");
-            final SecurityDomain sd4 = new SecurityDomain.Builder().name(DEP4).loginModules(loginModuleBuilder.build()).build();
+        @Override
+        protected String getRemotingConnectorName() {
+            return DEP1;
+        }
 
-            lmOptions.remove("hashEncoding");
-            lmOptions.put("hashUserPassword", "false");
-            final SecurityDomain sd5a = new SecurityDomain.Builder().name(DEP5a).loginModules(loginModuleBuilder.build())
-                    .build();
+        @Override
+        protected String getHttpAuthenticationName() {
+            return DEP1;
+        }
 
-            lmOptions.put("hashUserPassword", "true");
-            final SecurityDomain sd5b = new SecurityDomain.Builder().name(DEP5b).loginModules(loginModuleBuilder.build())
-                    .build();
+        @Override
+        protected String getUsersFile() {
+            return new File("test-users.properties").getAbsolutePath();
+        }
 
-            lmOptions.put("hashUserPassword", "false");
-            lmOptions.put("hashStorePassword", "true");
-            final SecurityDomain sd6a = new SecurityDomain.Builder().name(DEP6a).loginModules(loginModuleBuilder.build())
-                    .build();
+        @Override
+        protected String getGroupsFile() {
+            return new File("test-roles.properties").getAbsolutePath();
+        }
 
-            lmOptions.remove("hashUserPassword");
-            final SecurityDomain sd6b = new SecurityDomain.Builder().name(DEP6b).loginModules(loginModuleBuilder.build())
-                    .build();
+        @Override
+        protected boolean isUsersFilePlain() {
+            return true;
+        }
+    }
 
-            lmOptions.remove("hashStorePassword");
-            lmOptions.remove("hashAlgorithm");
-            lmOptions.put("ignorePasswordCase", "true");
-            final SecurityDomain sd7a = new SecurityDomain.Builder().name(DEP7a).loginModules(loginModuleBuilder.build())
-                    .build();
+    static class ElytronDomain2Setup extends EjbSecurityDomainSetup {
 
-            lmOptions.put("ignorePasswordCase", "false");
-            final SecurityDomain sd7b = new SecurityDomain.Builder().name(DEP7b).loginModules(loginModuleBuilder.build())
-                    .build();
+        @Override
+        protected String getSecurityDomainName() {
+            return DEP2;
+        }
 
-            return new SecurityDomain[]{sd1, sd2, sd3, sd4, sd5a, sd5b, sd6a, sd6b, sd7a, sd7b};
+        @Override
+        protected String getSecurityRealmName() {
+            return DEP2;
+        }
+
+        @Override
+        protected String getUndertowDomainName() {
+            return DEP2;
+        }
+
+        @Override
+        protected String getEjbDomainName() {
+            return DEP2;
+        }
+
+        @Override
+        protected String getSaslAuthenticationName() {
+            return DEP2;
+        }
+
+        @Override
+        protected String getRemotingConnectorName() {
+            return DEP2;
+        }
+
+        @Override
+        protected String getHttpAuthenticationName() {
+            return DEP2;
+        }
+
+        @Override
+        protected String getUsersFile() {
+            return new File("test-users-md5.properties").getAbsolutePath();
+        }
+
+        @Override
+        protected String getGroupsFile() {
+            return new File("test-roles-md5.properties").getAbsolutePath();
+        }
+
+        @Override
+        protected boolean isUsersFilePlain() {
+            return false;
         }
     }
 
@@ -448,12 +303,17 @@ public class UsersRolesLoginModuleTestCase {
         public static final File FILE_USERS = new File("test-users.properties");
         public static final File FILE_ROLES = new File("test-roles.properties");
 
+        public static final File FILE_USERS_MD5 = new File("test-users-md5.properties");
+        public static final File FILE_ROLES_MD5 = new File("test-roles-md5.properties");
+
         /**
          * Generates property files.
          */
         public void setup(ManagementClient managementClient, String containerId) throws Exception {
             FileUtils.writeStringToFile(FILE_USERS, USERS_EXT, "ISO-8859-1");
             FileUtils.writeStringToFile(FILE_ROLES, ROLES_EXT, "ISO-8859-1");
+            FileUtils.writeStringToFile(FILE_USERS_MD5, USERS_EXT_MD5, "ISO-8859-1");
+            FileUtils.writeStringToFile(FILE_ROLES_MD5, ROLES_EXT_MD5, "ISO-8859-1");
         }
 
         /**
@@ -462,6 +322,8 @@ public class UsersRolesLoginModuleTestCase {
         public void tearDown(ManagementClient managementClient, String containerId) throws Exception {
             FILE_USERS.delete();
             FILE_ROLES.delete();
+            FILE_USERS_MD5.delete();
+            FILE_ROLES_MD5.delete();
         }
     }
 

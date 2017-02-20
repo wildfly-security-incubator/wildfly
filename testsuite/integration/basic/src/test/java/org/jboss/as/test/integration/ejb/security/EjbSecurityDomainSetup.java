@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2011, Red Hat, Inc., and individual contributors
+ * Copyright 2016, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -22,78 +22,215 @@
 
 package org.jboss.as.test.integration.ejb.security;
 
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ALLOW_RESOURCE_SERVICE_RESTART;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.COMPOSITE;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OPERATION_HEADERS;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.STEPS;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUBSYSTEM;
-import static org.jboss.as.security.Constants.AUTHENTICATION;
-import static org.jboss.as.security.Constants.CODE;
-import static org.jboss.as.security.Constants.FLAG;
-import static org.jboss.as.security.Constants.SECURITY_DOMAIN;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.*;
 
-import java.util.Arrays;
+import java.io.File;
+import java.util.LinkedList;
+import java.util.List;
 
 import org.jboss.as.arquillian.container.ManagementClient;
 import org.jboss.as.controller.PathAddress;
+import org.jboss.as.controller.client.ModelControllerClient;
+import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.controller.operations.common.Util;
-import org.jboss.as.security.Constants;
 import org.jboss.as.test.integration.security.common.AbstractSecurityDomainSetup;
 import org.jboss.dmr.ModelNode;
+import org.jboss.logging.Logger;
+import org.wildfly.extension.elytron.ElytronExtension;
 
 /**
  * Utility methods to create/remove simple security domains
  *
- * @author <a href="mailto:mmoyses@redhat.com">Marcus Moyses</a>
+ * @author <a href="mailto:jkalina@redhat.com">Jan Kalina</a>
  */
 public class EjbSecurityDomainSetup extends AbstractSecurityDomainSetup {
 
-    protected static final String DEFAULT_SECURITY_DOMAIN_NAME = "ejb3-tests";
+    private static final Logger LOGGER = Logger.getLogger(EjbSecurityDomainSetup.class);
 
-    @Override
+    private PathAddress realmAddress;
+
+    private PathAddress domainAddress;
+
+    private PathAddress saslAuthenticationAddress;
+
+    private PathAddress remotingConnectorAddress;
+
+    private PathAddress ejbDomainAddress;
+
+    private PathAddress ejbRemoteAddress = PathAddress.pathAddress()
+            .append(SUBSYSTEM, "ejb3")
+            .append("service", "remote");
+
+    private PathAddress httpAuthenticationAddress;
+
+    private PathAddress undertowDomainAddress;
+
     protected String getSecurityDomainName() {
-        return DEFAULT_SECURITY_DOMAIN_NAME;
+        return "ejb3-tests";
     }
 
-    public boolean isUsersRolesRequired() {
+    protected String getSecurityRealmName() {
+        return "UsersRoles";
+    }
+
+    protected String getUndertowDomainName() {
+        return "ejb3-tests";
+    }
+
+    protected String getEjbDomainName() {
+        return "ejb3-tests";
+    }
+
+    protected String getSaslAuthenticationName() {
+        return "ejb3-tests";
+    }
+
+    protected String getRemotingConnectorName() {
+        return "ejb3-tests";
+    }
+
+    protected String getHttpAuthenticationName() {
+        return "ejb3-tests";
+    }
+
+    protected String getUsersFile() {
+        return new File(EjbSecurityDomainSetup.class.getResource("users.properties").getFile()).getAbsolutePath();
+    }
+
+    protected String getGroupsFile() {
+        return new File(EjbSecurityDomainSetup.class.getResource("roles.properties").getFile()).getAbsolutePath();
+    }
+
+    protected boolean isUsersFilePlain() {
         return true;
     }
 
     @Override
     public void setup(final ManagementClient managementClient, final String containerId) throws Exception {
+        System.out.println("elytron setup...");
+
+        realmAddress = PathAddress.pathAddress()
+                .append(SUBSYSTEM, ElytronExtension.SUBSYSTEM_NAME)
+                .append("properties-realm", getSecurityRealmName());
+
+        domainAddress = PathAddress.pathAddress()
+                .append(SUBSYSTEM, ElytronExtension.SUBSYSTEM_NAME)
+                .append("security-domain", getSecurityDomainName());
+
+        saslAuthenticationAddress = PathAddress.pathAddress()
+                .append(SUBSYSTEM, ElytronExtension.SUBSYSTEM_NAME)
+                .append("sasl-authentication-factory", getSaslAuthenticationName());
+
+        remotingConnectorAddress = PathAddress.pathAddress()
+                .append(SUBSYSTEM, "remoting")
+                .append("http-connector", getRemotingConnectorName());
+
+        ejbDomainAddress = PathAddress.pathAddress()
+                .append(SUBSYSTEM, "ejb3")
+                .append("application-security-domain", getEjbDomainName());
+
+        httpAuthenticationAddress = PathAddress.pathAddress()
+                .append(SUBSYSTEM, ElytronExtension.SUBSYSTEM_NAME)
+                .append("http-authentication-factory", getHttpAuthenticationName());
+
+        undertowDomainAddress = PathAddress.pathAddress()
+                .append(SUBSYSTEM, "undertow")
+                .append("application-security-domain", getUndertowDomainName());
 
         final ModelNode compositeOp = new ModelNode();
-        compositeOp.get(OP).set(COMPOSITE);
+        compositeOp.get(OP).set(ModelDescriptionConstants.COMPOSITE);
         compositeOp.get(OP_ADDR).setEmptyList();
 
         ModelNode steps = compositeOp.get(STEPS);
-        PathAddress securityDomainAddress = PathAddress.pathAddress()
-                .append(SUBSYSTEM, "security")
-                .append(SECURITY_DOMAIN, getSecurityDomainName());
-        steps.add(Util.createAddOperation(securityDomainAddress));
-        PathAddress authAddress = securityDomainAddress.append(AUTHENTICATION, Constants.CLASSIC);
-        steps.add(Util.createAddOperation(authAddress));
-        ModelNode op = Util.createAddOperation(authAddress.append(Constants.LOGIN_MODULE, "Remoting"));
-        op.get(CODE).set("Remoting");
-        if (isUsersRolesRequired()) {
-            op.get(FLAG).set("optional");
-        } else {
-            op.get(FLAG).set("required");
-        }
-        op.get(Constants.MODULE_OPTIONS).add("password-stacking", "useFirstPass");
-        steps.add(op);
-        if (isUsersRolesRequired()) {
 
-            ModelNode loginModule = Util.createAddOperation(authAddress.append(Constants.LOGIN_MODULE, "UsersRoles"));
-            loginModule.get(CODE).set("UsersRoles");
-            loginModule.get(FLAG).set("required");
-            loginModule.get(Constants.MODULE_OPTIONS).add("password-stacking", "useFirstPass");
-            loginModule.get(OPERATION_HEADERS).get(ALLOW_RESOURCE_SERVICE_RESTART).set(true);
-            steps.add(loginModule);
-        }
+        // /subsystem=elytron/properties-realm=UsersRoles:add(users-properties={path=users.properties},groups-properties={path=roles.properties})
+        ModelNode addRealm = Util.createAddOperation(realmAddress);
+        addRealm.get("users-properties").get("path").set(getUsersFile());
+        addRealm.get("groups-properties").get("path").set(getGroupsFile());
+        addRealm.get("plain-text").set(isUsersFilePlain()); // not hashed
+        steps.add(addRealm);
 
-        applyUpdates(managementClient.getControllerClient(), Arrays.asList(compositeOp));
+        // /subsystem=elytron/security-domain=EjbDomain:add(default-realm=UsersRoles, realms=[{realm=UsersRoles}])
+        ModelNode addDomain = Util.createAddOperation(domainAddress);
+        addDomain.get("permission-mapper").set("login-permission-mapper"); // LoginPermission for everyone (defined in standalone-elytron.xml)
+        addDomain.get("default-realm").set(getSecurityRealmName());
+        addDomain.get("realms").get(0).get("realm").set(getSecurityRealmName());
+        addDomain.get("realms").get(0).get("role-decoder").set("groups-to-roles"); // use attribute "groups" as roles (defined in standalone-elytron.xml)
+        steps.add(addDomain);
+
+        // /subsystem=elytron/sasl-authentication-factory=ejb3-tests-auth-fac:add(sasl-server-factory=configured,security-domain=EjbDomain,mechanism-configurations=[{mechanism-name=BASIC}])
+        ModelNode addSaslAuthentication = Util.createAddOperation(saslAuthenticationAddress);
+        addSaslAuthentication.get("sasl-server-factory").set("configured");
+        addSaslAuthentication.get("security-domain").set(getSecurityDomainName());
+        addSaslAuthentication.get("mechanism-configurations").get(0).get("mechanism-name").set("BASIC");
+        steps.add(addSaslAuthentication);
+
+        // remoting connection with sasl-authentication-factory
+        ModelNode addRemotingConnector = Util.createAddOperation(remotingConnectorAddress);
+        addRemotingConnector.get("sasl-authentication-factory").set(getSaslAuthenticationName());
+        addRemotingConnector.get("connector-ref").set("default");
+        // authentication-provider  sasl-protocol  security-realm  server-name
+        steps.add(addRemotingConnector);
+
+        // /subsystem=ejb3/application-security-domain=ejb3-tests:add(security-domain=ApplicationDomain)
+        ModelNode addEjbDomain = Util.createAddOperation(ejbDomainAddress);
+        addEjbDomain.get("security-domain").set(getSecurityDomainName());
+        steps.add(addEjbDomain);
+
+        steps.add(Util.getWriteAttributeOperation(ejbRemoteAddress, "connector-ref", "ejb3-tests-connector"));
+
+        ModelNode addHttpAuthentication = Util.createAddOperation(httpAuthenticationAddress);
+        addHttpAuthentication.get("security-domain").set(getSecurityDomainName());
+        addHttpAuthentication.get("http-server-mechanism-factory").set("global");
+        addHttpAuthentication.get("mechanism-configurations").get(0).get("mechanism-name").set("BASIC");
+        addHttpAuthentication.get("mechanism-configurations").get(0).get("mechanism-realm-configurations").get(0).get("realm-name").set("TestingRealm");
+        steps.add(addHttpAuthentication);
+
+        ModelNode addUndertowDomain = Util.createAddOperation(undertowDomainAddress);
+        addUndertowDomain.get("http-authentication-factory").set(getHttpAuthenticationName());
+        steps.add(addUndertowDomain);
+
+        applyUpdate(managementClient.getControllerClient(), compositeOp, false);
+        System.out.println("...elytron setup");
+    }
+
+    @Override
+    public void tearDown(final ManagementClient managementClient, final String containerId) {
+        System.out.println("tearing down...");
+
+        List<ModelNode> updates = new LinkedList<>();
+        updates.add(createRemoveIgnoring(undertowDomainAddress));
+        updates.add(createRemoveIgnoring(httpAuthenticationAddress));
+        updates.add(Util.getWriteAttributeOperation(ejbRemoteAddress, "connector-ref", "http-remoting-connector"));
+        updates.add(createRemoveIgnoring(ejbDomainAddress));
+        updates.add(createRemoveIgnoring(remotingConnectorAddress));
+        updates.add(createRemoveIgnoring(saslAuthenticationAddress));
+        updates.add(createRemoveIgnoring(domainAddress));
+        updates.add(createRemoveIgnoring(realmAddress));
+
+        try {
+            applyUpdates(managementClient.getControllerClient(), updates, true);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        System.out.println("...tearing down");
+    }
+
+    private static ModelNode createRemoveIgnoring(PathAddress address) {
+        ModelNode remove = Util.createRemoveOperation(address);
+        // Don't rollback when the AS detects the war needs the module
+        remove.get(OPERATION_HEADERS, ROLLBACK_ON_RUNTIME_FAILURE).set(false);
+        remove.get(OPERATION_HEADERS, ALLOW_RESOURCE_SERVICE_RESTART).set(true);
+        return remove;
+    }
+
+    protected static void applyUpdates(final ModelControllerClient client, final List<ModelNode> updates, boolean allowFailure) {
+        for (ModelNode update : updates) {
+            try {
+                applyUpdate(client, update, allowFailure);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 }

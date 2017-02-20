@@ -38,6 +38,7 @@ import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -99,6 +100,7 @@ public class LocalViewRemoteInvocationTestCase {
      */
     @Test
     @RunAsClient
+    @Ignore("[WFLY-7778] Waiting for remoting")
     public void testLocalViewInvocationRemotelyOnSFSB() throws Exception {
         final LocalEcho localEcho = (LocalEcho) context.lookup("ejb:" + APP_NAME + "/" + MODULE_NAME + "/" + DISTINCT_NAME + "/" + StatefulEcho.class.getSimpleName() + "!" + LocalEcho.class.getName() + "?stateful");
         final String message = "Silence!";
