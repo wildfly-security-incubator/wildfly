@@ -299,10 +299,6 @@ public class UndertowDeploymentInfoService implements Service<DeploymentInfo> {
             }
             handleAdditionalAuthenticationMechanisms(deploymentInfo);
 
-            if(mergedMetaData.isUseJBossAuthorization()) {
-                deploymentInfo.setAuthorizationManager(new JbossAuthorizationManager(deploymentInfo.getAuthorizationManager()));
-            }
-
             SessionConfigMetaData sessionConfig = mergedMetaData.getSessionConfig();
             if(sharedSessionManagerConfig != null && sharedSessionManagerConfig.getSessionConfig() != null) {
                 sessionConfig = sharedSessionManagerConfig.getSessionConfig();
@@ -994,6 +990,10 @@ public class UndertowDeploymentInfoService implements Service<DeploymentInfo> {
                     d.addOuterHandlerChainWrapper(JACCContextIdHandler.wrapper(jaccContextId));
 
                     d.addLifecycleInterceptor(new RunAsLifecycleInterceptor(mergedMetaData.getRunAsIdentity()));
+                }
+
+                if(mergedMetaData.isUseJBossAuthorization()) {
+                    deploymentInfo.setAuthorizationManager(new JbossAuthorizationManager(deploymentInfo.getAuthorizationManager()));
                 }
             }
 
