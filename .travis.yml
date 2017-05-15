@@ -1,0 +1,16 @@
+language: java
+install:
+    - ./.travis.prepareLadybird.sh
+script:
+    - ./integration-tests.sh -fae -nsu -Dts.elytron -Delytron -Dts.basic
+after_failure:
+    - tail -n 1000 ladybird-build.log
+env:
+  global:
+    - JAVA_HOME=/usr/lib/jvm/java-8-oracle
+    - MAVEN_SKIP_RC=true
+addons:
+  apt:
+    packages:
+      - oracle-java8-installer
+      - oracle-java8-set-default
